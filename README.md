@@ -1,2 +1,2 @@
 # to_do.py
-Cli program that performs SUID functions on a auto-generated to do list item SQLite3 embedded Database (in local fs)
+Cli 'To do list' program that performs SUID functions on a auto-generated SQLite3 embedded Database (local fs)
