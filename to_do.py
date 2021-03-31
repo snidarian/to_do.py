@@ -121,23 +121,32 @@ def insert_statement_function(tsk, details):
 def update_statement_function():
     
     while True:
-        print(ly + "\n\nUPDATE: " + r + "1) " + b + "[COMPLETE]" + ly + ", " + r + "2) " + b + "[UNCOMPLETED]\n")
-        print(ly + "UPDATE: " + r + "3) " + b + "[Task_name]" + ly + ", " + r + "4) " + b + "[Details]\n")
+        print(ly + "\n\nUPDATE: " + r + "1) " + b + "[COMPLETE]" + ly + ", " + r + "2) " + b + "[UNCOMPLETE]" + ly + ", ", end='')
+        print(r + "3) " + b + "[Task_name]" + ly + ", " + r + "4) " + b + "[Details]" + ly + ", \n")
         print(ly + "MENU:   " + r + "5) " + b + "[EXIT]\n\n" + reset)
         option = input(lb + "----> " + reset)
         option = int(option)
         if option == 5:
             break
         elif option == 1:
-            select_statement_uncompleted()
-            task_id = input(ly + "task id: " + reset)
-            connection.execute("UPDATE to_do_list set completed = 1, completion_date = DATE() WHERE id = ? ;", (task_id))
-            connection.commit()
+            while True:
+                select_statement_uncompleted()
+                print(lb + "Enter id: " + reset + "(0 to return to previous menu)")
+                task_id = input(ly + "task id: " + reset)
+                if int(task_id) == 0:
+                    break
+                connection.execute("UPDATE to_do_list set completed = 1, completion_date = DATE() WHERE id = ? ;", (task_id))
+                connection.commit()
         elif option == 2:
-            select_statement_completed()
-            task_id = input(ly + "Task id: " + reset)
-            connection.execute("UPDATE to_do_list set completed = 0, completion_date = NULL WHERE id = ? ;", (task_id))
-            connection.commit()
+            while True:
+                select_statement_completed()
+                print(lb + "Enter id: " + reset + "(0 to return to previous menu)")
+                task_id = input(ly + "task id: " + reset)
+                if int(task_id) == 0:
+                    break
+                task_id = input(ly + "Task id: " + reset)
+                connection.execute("UPDATE to_do_list set completed = 0, completion_date = NULL WHERE id = ? ;", (task_id))
+                connection.commit()
         else:
             buffer_animation("Error: incorrect option", .2, "RED", 4)
         
@@ -165,7 +174,7 @@ runvar = True
 while runvar == True:
     print(m_dashband)
     print(ly + "Operations:\n" + reset)
-    option = input(r + "1) " + g + "INSERT\n" + r + "2) " + g + "SELECT\n" + r + "3) " + g + "UPDATE\n" + r + "4) " + g +  "DELETE\n" + r + "5) " + g + "QUIT\n" + lb + "\n-------> " + reset)
+    option = input(r + "1) " + lb + "[INSERT]\n" + r + "2) " + lb + "[SELECT]\n" + r + "3) " + lb + "[UPDATE]\n" + r + "4) " + lb +  "[DELETE]\n" + r + "5) " + lb + "[QUIT]\n" + lb + "\n-------> " + reset)
     if option == str(5) or option == "quit":
         runvar = False
         buffer_animation("Quitting", .2, "RED", 5)
@@ -194,6 +203,9 @@ while runvar == True:
 
 
 connection.close()
+
+
+
 
 
 
