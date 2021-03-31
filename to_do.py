@@ -6,6 +6,7 @@ import sqlite3
 import texttable
 import time
 from colorama import Fore, Back, Style, init
+import os
 
 
 # DEFINITIONS
@@ -22,7 +23,7 @@ ly = Fore.LIGHTYELLOW_EX
 reset = Style.RESET_ALL
 
 
-m_dashband = (ly + "------------------------------------------------------------------------------------------" + reset)
+m_dashband = (ly + "+--------------+" + reset)
 
 
 # FUNCTION DEFINITIONS
@@ -86,7 +87,6 @@ def print_texttable_object(texttable_object, color):
 def select_statement_uncompleted():
     # Calling incomplete task-rows
     cursor = connection.cursor()
-    buffer_animation("Loading", .2, "GREEN", 1)
     rows = cursor.execute("SELECT id, task_name, details, creation_date FROM to_do_list WHERE completed=0;").fetchall()
     print(r + "\n\nUNCOMPLETED ENTRIES" + reset)
     generate_table_object(rows, ly, False)
@@ -94,13 +94,13 @@ def select_statement_uncompleted():
 def select_statement_completed():
     # Calling completed task-rows
     cursor = connection.cursor()
-    buffer_animation("Loading", .2, "GREEN", 1)
     rows = cursor.execute("SELECT id, task_name, details, completion_date FROM to_do_list WHERE completed=1;").fetchall()
-    print(g + "\n\nCOMPLETED ENTRIES" + reset)
+    print(r + "\n\nCOMPLETED ENTRIES" + reset)
     generate_table_object(rows, lb, True)
 
 
 def select_statement_function(select_all, regex):
+    os.system('clear')
     cursor = connection.cursor()
     if select_all == True:
         # Calling incomplete task-rows
@@ -111,49 +111,91 @@ def select_statement_function(select_all, regex):
         buffer_animation("Loading", .2, "GREEN", 1)
         rows = cursor.execute("SELECT id, task_name, details, creation_date, completed, completion_date FROM to_do_list WHERE task_name LIKE ? ;", (regex,)).fetchall()
         generate_table_object(rows, ly, None)
-    buffer_animation("Loading", .2, "GREEN", 2)
+    buffer_animation("Loading", .2, "GREEN", 1)
 
 
-def insert_statement_function(tsk, details):
-    connection.execute("INSERT INTO to_do_list(task_name, details, creation_date, completed, completion_date) VALUES (?, ?, DATE(), 0, NULL)", (tsk, details))
-    connection.commit()
+def insert_statement_function():
+    os.system('clear')
+    while True:
+        select_statement_uncompleted()
+        print(lb + "Enter task info" + reset + " (0 to return to main menu)")
+        task_name = input(lb + "Task Name: " + reset)
+        if task_name == "0":
+            break
+        description = input(lb + "Details: " + reset)
+        if description == "0":
+            break
+        connection.execute("INSERT INTO to_do_list(task_name, details, creation_date, completed, completion_date) VALUES (?, ?, DATE(), 0, NULL)", (task_name, description))
+        connection.commit()
+        os.system('clear')
 
 def update_statement_function():
-    
+    os.system('clear')
     while True:
-        print(ly + "\n\nUPDATE: " + r + "1) " + b + "[COMPLETE]" + ly + ", " + r + "2) " + b + "[UNCOMPLETE]" + ly + ", ", end='')
-        print(r + "3) " + b + "[Task_name]" + ly + ", " + r + "4) " + b + "[Details]" + ly + ", \n")
-        print(ly + "MENU:   " + r + "5) " + b + "[EXIT]\n\n" + reset)
+        select_statement_function(True, None)
+        print(ly + "\n\nUPDATE: " + r + "1) " + lb + "[COMPLETE]" + ly + ", " + r + "2) " + lb + "[UNCOMPLETE]" + ly + ", ", end='')
+        print(r + "3) " + lb + "[Task_name]" + ly + ", " + r + "4) " + lb + "[Details]" + ly + ", \n")
+        print(ly + "MENU:   " + r + "5) " + lb + "[EXIT]\n\n" + reset)
         option = input(lb + "----> " + reset)
         option = int(option)
+        os.system('clear')
         if option == 5:
             break
         elif option == 1:
             while True:
                 select_statement_uncompleted()
                 print(lb + "Enter id: " + reset + "(0 to return to previous menu)")
-                task_id = input(ly + "task id: " + reset)
-                if int(task_id) == 0:
+                task_id = input(lb + "Task id: " + reset)
+                if task_id == "0":
                     break
-                connection.execute("UPDATE to_do_list set completed = 1, completion_date = DATE() WHERE id = ? ;", (task_id))
-                connection.commit()
+                task_id = int(task_id)
+                try:
+                    connection.execute("UPDATE to_do_list set completed = 1, completion_date = DATE() WHERE id = ? ;", (task_id,))
+                    connection.commit()
+                except: 
+                    print(r + "Error:" + reset + " Invalid task ID entry")
+                os.system('clear')
         elif option == 2:
             while True:
                 select_statement_completed()
                 print(lb + "Enter id: " + reset + "(0 to return to previous menu)")
-                task_id = input(ly + "task id: " + reset)
-                if int(task_id) == 0:
+                task_id = input(lb + "Task id: " + reset)
+                if task_id == "0":
                     break
-                task_id = input(ly + "Task id: " + reset)
-                connection.execute("UPDATE to_do_list set completed = 0, completion_date = NULL WHERE id = ? ;", (task_id))
-                connection.commit()
+                task_id = int(task_id)
+                try:
+                    connection.execute("UPDATE to_do_list set completed = 0, completion_date = NULL WHERE id = ? ;", (task_id,))
+                    connection.commit()
+                except:
+                    print(r + "Error:" + reset + " Invalid task ID entry")
+                os.system('clear')
         else:
             buffer_animation("Error: incorrect option", .2, "RED", 4)
+        os.system('clear')
         
 
 
 def delete_statement_function():
-    pass
+    # Display all entries
+    os.system('clear')
+    while True:
+        print(r + "ALL LIST ENTRIES" + reset)
+        select_statement_function(False, '%')
+        # Select by ID which one to delete from the list
+        print(lb + "Enter ID of row to delete" + reset + " (0 to return to main menu)")
+        option = input(lb + "Task ID: " + reset)
+        try:
+            if int(option) == 0:
+                break
+            else:
+                    cursor = connection.cursor()
+                    cursor.execute("DELETE FROM to_do_list WHERE id = ?", (option,))
+                    connection.commit()
+                    buffer_animation("DELETEING ROW", .2, "RED", 2)
+        except ValueError:
+            print(r + "Error: " + reset + "Invalid entry")
+            os.system('sleep 2')
+    os.system('clear')
 
 
 # EXECUTIONS
@@ -174,11 +216,10 @@ runvar = True
 while runvar == True:
     print(m_dashband)
     print(ly + "Operations:\n" + reset)
-    option = input(r + "1) " + lb + "[INSERT]\n" + r + "2) " + lb + "[SELECT]\n" + r + "3) " + lb + "[UPDATE]\n" + r + "4) " + lb +  "[DELETE]\n" + r + "5) " + lb + "[QUIT]\n" + lb + "\n-------> " + reset)
+    option = input(r + "1) " + ly + "[INSERT]\n" + r + "2) " + ly + "[SELECT]\n" + r + "3) " + ly + "[UPDATE]\n" + r + "4) " + ly +  "[DELETE]\n" + r + "5) " + ly + "[QUIT]\n" + lb + "\n-----> " + reset)
     if option == str(5) or option == "quit":
         runvar = False
-        buffer_animation("Quitting", .2, "RED", 5)
-    
+        buffer_animation("Quitting", .2, "RED", 4)
     elif option == str(2): # SELECT
         select_statement_option = input(ly + "View all entries:" + reset + c + " (y/n) " + reset)
         if select_statement_option == "y" or select_statement_option == "Y":
@@ -189,23 +230,19 @@ while runvar == True:
 
     elif option == str(1): # INSERT 
         buffer_animation("Loading", .2, "GREEN", 2)
-        task_name = input(b + "Task Name: " + reset)
-        description = input(b + "Details: " + reset)
-        insert_statement_function(task_name, description)
+        insert_statement_function()
     elif option == str(3): # UPDATE
         buffer_animation("Loading", .2, "GREEN", 2)
         update_statement_function()
     elif option == str(4): # DELETE
-        print("Delete list item(s)...")
+        buffer_animation("Loading deletion menu", .2, "RED", 2)
+        delete_statement_function()
 
 
 
-
-
+# ls directory contents so that immedediately after program terminates, it sets you on the path to accomplishing other tasks
+os.system('clear && ls --color=auto')
 connection.close()
-
-
-
 
 
 
