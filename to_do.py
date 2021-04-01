@@ -2,11 +2,11 @@
 
 # Cli program that performs SUID functions on a auto-generated to do list item SQLite3 embedded Database (in local fs)
 
+import os
 import sqlite3
 import texttable
 import time
 from colorama import Fore, Back, Style, init
-import os
 
 
 # DEFINITIONS
@@ -78,6 +78,22 @@ def generate_table_object(row_list, color, completed):
         print_texttable_object(table_obj, color)
     
 
+def generate_table_object_prompt(options_list, color):
+    prompt_table = texttable.Texttable(0) # instantiate table object from Texttable class
+    align_list = ["c", "c"]
+    valign_list = ["t", "t"]
+    header_list = ["Option", "Operation"]
+    prompt_table.set_cols_align(align_list)
+    prompt_table.set_cols_valign(valign_list)
+    prompt_table.add_row(header_list)
+    i=1
+    for item in options_list:
+        prompt_table.add_row([str(i), item])
+        i+=1
+    print_texttable_object(prompt_table, color)
+
+
+
 def print_texttable_object(texttable_object, color):
     print(color)
     print(texttable_object.draw())
@@ -88,14 +104,14 @@ def select_statement_uncompleted():
     # Calling incomplete task-rows
     cursor = connection.cursor()
     rows = cursor.execute("SELECT id, task_name, details, creation_date FROM to_do_list WHERE completed=0;").fetchall()
-    print(r + "\n\nUNCOMPLETED ENTRIES" + reset)
+    print(r + "\n\n  UNCOMPLETED ENTRIES" + reset)
     generate_table_object(rows, ly, False)
 
 def select_statement_completed():
     # Calling completed task-rows
     cursor = connection.cursor()
     rows = cursor.execute("SELECT id, task_name, details, completion_date FROM to_do_list WHERE completed=1;").fetchall()
-    print(r + "\n\nCOMPLETED ENTRIES" + reset)
+    print(r + "\n\n  COMPLETED ENTRIES" + reset)
     generate_table_object(rows, lb, True)
 
 
@@ -108,10 +124,10 @@ def select_statement_function(select_all, regex):
         # Calling completed task-rows
         select_statement_completed()
     elif select_all == False:
-        buffer_animation("Loading", .2, "GREEN", 1)
+        buffer_animation("Loading", .2, "GREEN", 0)
         rows = cursor.execute("SELECT id, task_name, details, creation_date, completed, completion_date FROM to_do_list WHERE task_name LIKE ? ;", (regex,)).fetchall()
         generate_table_object(rows, ly, None)
-    buffer_animation("Loading", .2, "GREEN", 1)
+    buffer_animation("Loading", .2, "GREEN", 0)
 
 
 def insert_statement_function():
@@ -121,22 +137,27 @@ def insert_statement_function():
         print(lb + "Enter task info" + reset + " (0 to return to main menu)")
         task_name = input(lb + "Task Name: " + reset)
         if task_name == "0":
+            os.system('clear')
             break
+            
         description = input(lb + "Details: " + reset)
         if description == "0":
+            os.system('clear')
             break
         connection.execute("INSERT INTO to_do_list(task_name, details, creation_date, completed, completion_date) VALUES (?, ?, DATE(), 0, NULL)", (task_name, description))
         connection.commit()
         os.system('clear')
+    os.system('clear')
+    
 
 def update_statement_function():
     os.system('clear')
     while True:
         select_statement_function(True, None)
-        print(ly + "\n\nUPDATE: " + r + "1) " + lb + "[COMPLETE]" + ly + ", " + r + "2) " + lb + "[UNCOMPLETE]" + ly + ", ", end='')
-        print(r + "3) " + lb + "[Task_name]" + ly + ", " + r + "4) " + lb + "[Details]" + ly + ", \n")
-        print(ly + "MENU:   " + r + "5) " + lb + "[EXIT]\n\n" + reset)
-        option = input(lb + "----> " + reset)
+        print("\n  UPDATE MENU  ")
+        update_menu_prompt = ["MARK COMPLETED", "MARK UNCOMPLETED", "EDIT TASK NAME", "EDIT TASK DETAILS", "QUIT"]
+        generate_table_object_prompt(update_menu_prompt, ly)
+        option = input(lb + "--------> " + reset)
         option = int(option)
         os.system('clear')
         if option == 5:
@@ -169,6 +190,36 @@ def update_statement_function():
                 except:
                     print(r + "Error:" + reset + " Invalid task ID entry")
                 os.system('clear')
+        elif option == 3: # edit existing task name
+            select_statement_function(True, None) # display all tasks regardless of completion status
+            try:
+                task_alter_id = input("ID of row task-name to alter (0 to return to previous menu)\n" + lb + "--------> " + reset)
+                if task_alter_id == "0":
+                    continue
+                else:
+                    task_alter_id = int(task_alter_id)
+                    new_task_name = input("Enter new task name: ")
+                    connection.execute("UPDATE to_do_list SET task_name = ? WHERE id = ?", (new_task_name, task_alter_id))
+                    connection.commit()
+            except:
+                print(r + "Error: " + reset + "InvalidDataEntry")
+                os.system('sleep 2')
+        
+        elif option == 4: # edit task details
+            select_statement_function(True, None) # display all tasks regardless of completion status
+            try:
+                task_alter_id = input("ID of row details-column to alter (0 to return to previous menu)\n" + lb + "--------> " + reset)
+                if task_alter_id == "0":
+                    continue
+                else:
+                    task_alter_id = int(task_alter_id)
+                    new_details_text = input("Enter new details section: ")
+                    connection.execute("UPDATE to_do_list SET details = ? WHERE id = ?", (new_details_text, task_alter_id))
+                    connection.commit()
+            except:
+                print(r + "Error: " + reset + "InvalidDataEntry")
+                os.system('sleep 2')
+            
         else:
             buffer_animation("Error: incorrect option", .2, "RED", 4)
         os.system('clear')
@@ -191,7 +242,7 @@ def delete_statement_function():
                     cursor = connection.cursor()
                     cursor.execute("DELETE FROM to_do_list WHERE id = ?", (option,))
                     connection.commit()
-                    buffer_animation("DELETEING ROW", .2, "RED", 2)
+                    buffer_animation("DELETEING ROW", .2, "RED", 1)
         except ValueError:
             print(r + "Error: " + reset + "Invalid entry")
             os.system('sleep 2')
@@ -208,15 +259,19 @@ try:
     connection.execute("CREATE TABLE to_do_list(id INTEGER PRIMARY KEY AUTOINCREMENT, task_name TEXT, details TEXT, creation_date DATE, completed BOOL, completion_date DATE)")
     connection.commit()
 except sqlite3.OperationalError: # error if table already created
-    print(r + "Existing 'to_do_list' table found" + reset)
+    print(r + "Existing 'to_do_list' table found\n\n" + reset)
+
 
 
 # main event loop
 runvar = True
 while runvar == True:
-    print(m_dashband)
-    print(ly + "Operations:\n" + reset)
-    option = input(r + "1) " + ly + "[INSERT]\n" + r + "2) " + ly + "[SELECT]\n" + r + "3) " + ly + "[UPDATE]\n" + r + "4) " + ly +  "[DELETE]\n" + r + "5) " + ly + "[QUIT]\n" + lb + "\n-----> " + reset)
+    os.system('clear')
+    select_statement_uncompleted()
+    print(" MAIN MENU  ")
+    main_menu_prompt = ["INSERT", "SELECT", "UPDATE", "DELETE", "QUIT"]
+    generate_table_object_prompt(main_menu_prompt, ly)
+    option = input(lb + "\n------------> " + reset)
     if option == str(5) or option == "quit":
         runvar = False
         buffer_animation("Quitting", .2, "RED", 4)
@@ -229,13 +284,13 @@ while runvar == True:
             select_statement_function(False, search_term)
 
     elif option == str(1): # INSERT 
-        buffer_animation("Loading", .2, "GREEN", 2)
+        buffer_animation("Loading", .2, "GREEN", 1)
         insert_statement_function()
     elif option == str(3): # UPDATE
-        buffer_animation("Loading", .2, "GREEN", 2)
+        buffer_animation("Loading", .2, "GREEN", 1)
         update_statement_function()
     elif option == str(4): # DELETE
-        buffer_animation("Loading deletion menu", .2, "RED", 2)
+        buffer_animation("Loading deletion menu", .2, "RED", 1)
         delete_statement_function()
 
 
@@ -243,6 +298,8 @@ while runvar == True:
 # ls directory contents so that immedediately after program terminates, it sets you on the path to accomplishing other tasks
 os.system('clear && ls --color=auto')
 connection.close()
+
+
 
 
 
