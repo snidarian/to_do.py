@@ -6,6 +6,8 @@ authors = ["snidarian <cephalopod31956@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
+texttable = "^1.6.4"
+colorama = "^0.4.4"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
